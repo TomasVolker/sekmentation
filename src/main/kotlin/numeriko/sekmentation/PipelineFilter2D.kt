@@ -11,11 +11,11 @@ import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.doubleZeros
 import tomasvolker.numeriko.core.interfaces.factory.toDoubleArray1D
 
-interface Filter2D {
-    fun filter(input: DoubleArray2D): DoubleArray2D
+interface Filter<T> {
+    fun filter(input: T): T
 }
 
-interface PipelineFilter2D: Filter2D {
+interface PipelineFilter2D: Filter<DoubleArray2D> {
     override fun filter(input: DoubleArray2D): DoubleArray2D {
         val destination = doubleZeros(input.shape).as2D().asMutable()
         filter(input, destination)
