@@ -1,20 +1,17 @@
 package numeriko.sekmentation
 
 import tomasvolker.numeriko.core.index.All
-import tomasvolker.numeriko.core.index.Last
 import tomasvolker.numeriko.core.interfaces.array1d.double.DoubleArray1D
 import tomasvolker.numeriko.core.interfaces.array1d.generic.lastIndex
 import tomasvolker.numeriko.core.interfaces.array1d.integer.IntArray1D
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
-import tomasvolker.numeriko.core.interfaces.array2d.double.applyElementWise
 import tomasvolker.numeriko.core.interfaces.arraynd.double.DoubleArrayND
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.doubleZeros
 import tomasvolker.numeriko.core.interfaces.factory.toDoubleArray1D
 
 interface Filter2D {
-    val kernel: FilterKernel<DoubleArray2D>
     fun filter(input: DoubleArray2D): DoubleArray2D
 }
 
@@ -33,7 +30,7 @@ private fun DoubleArray2D.flatten() = List(shape0) { i -> this[i,All] }.flatten(
 
 private fun DoubleArray1D.median() = sorted()[lastIndex / 2]
 
-class MedianFilter2D(override val kernel: FilterKernel<DoubleArray2D>): PipelineFilter2D {
+class MedianFilter2D(val kernel: FilterKernel<DoubleArray2D>): PipelineFilter2D {
 
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D): Unit {
         val edgeX = input.shape0 - kernel.shape[0]
@@ -49,7 +46,7 @@ class MedianFilter2D(override val kernel: FilterKernel<DoubleArray2D>): Pipeline
         }
     }
 
-    fun convolveWithKernel(image: DoubleArray2D, position: PixelPosition) =
+    private fun convolveWithKernel(image: DoubleArray2D, position: PixelPosition) =
             doubleArray2D(kernel.shape[0], kernel.shape[1]) { i0, i1 ->
                 image[i0 + position.x,i1 + position.y] * kernel.window[i0,i1]
             }
@@ -57,4 +54,16 @@ class MedianFilter2D(override val kernel: FilterKernel<DoubleArray2D>): Pipeline
     private fun DoubleArray2D.estimateMedian() = flatten().median()
 
     inner class PixelPosition(val x: Int, val y: Int)
+}
+
+class HistogramEquilizationFilter(override val nBins: Int): PipelineFilter2D, ImageHistogram(nBins) {
+    override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
+        val grayScale = equalizedHistogram(input)
+
+        for (i in 0 until input.shape0) {
+            for (j in 0 until input.shape1) {
+                destination[i,j] = grayScale[input[i,j].toInt()]
+            }
+        }
+    }
 }
