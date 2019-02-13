@@ -4,9 +4,13 @@ interface WeightedGraph {
 
     val size: Int
 
-    fun support(nodeIndex: Int): Iterable<Int> = 0 until size
+    fun support(node: Int): Iterable<Int> = 0 until size
 
     fun weight(from: Int, to: Int): Double
+
+    fun forEachOnSupport(node: Int, block: (Int)->Unit) {
+        support(node).forEach(block)
+    }
 
 }
 
