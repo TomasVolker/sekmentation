@@ -1,4 +1,4 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.internal.os.OperatingSystem
 
 plugins {
     java
@@ -10,16 +10,30 @@ version = "0.1"
 
 repositories {
     mavenCentral()
+    maven { setUrl("http://dl.bintray.com/tomasvolker/maven") }
+}
+
+val openrndrVersion = "0.3.30"
+
+val openrndrOS = when (OperatingSystem.current()) {
+    OperatingSystem.WINDOWS -> "windows"
+    OperatingSystem.LINUX -> "linux-x64"
+    OperatingSystem.MAC_OS -> "macos"
+    else -> error("unsupported OS")
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     testCompile("junit", "junit", "4.12")
-}
 
-configure<JavaPluginConvention> {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-}
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+    implementation(group = "tomasvolker", name = "numeriko-core", version = "0.0.2")
+    implementation(group = "tomasvolker", name = "kyplot", version = "0.0.1")
+
+    implementation("org.openrndr:openrndr-core:$openrndrVersion")
+    implementation("org.openrndr:openrndr-extensions:$openrndrVersion")
+    implementation("org.openrndr:openrndr-ffmpeg:$openrndrVersion")
+
+    runtime("org.openrndr:openrndr-gl3:$openrndrVersion")
+    runtime("org.openrndr:openrndr-gl3-natives-$openrndrOS:$openrndrVersion")
+    
 }
