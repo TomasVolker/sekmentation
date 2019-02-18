@@ -15,12 +15,21 @@ class ThresholdFilter(override val nBins: Int): PipelineFilter2D, ImageHistogram
                 }
             }
 
-    private fun estimateOptimalThreshold(histogram: IntArray1D): Int =
-            histogram.max()?.let { thresholdMax ->
-                List(thresholdMax) { i ->
-                    histogramArea(histogram, i)
-                }.fold(histogramArea(histogram,0)) { acc, area -> area / acc }
-            } ?: 0
+    private fun estimateOptimalThreshold(histogram: IntArray1D): Int {
+        val maxHist = histogram.max() ?: 0
+        var area = 0
+        val percentDiff = mutableListOf<Double>()
+
+        for (i in 0 until maxHist) {
+            if (area == 0)
+                percentDiff.add(0.0)
+            else
+                percentDiff.add(histogram[i] / area.toDouble())
+            area += histogram[i]
+        }
+
+        return percentDiff.max()?.toInt() ?: 0
+    }
 
     private fun histogramArea(histogram: IntArray1D, threshold: Int) =
             histogram.count { it < threshold }
