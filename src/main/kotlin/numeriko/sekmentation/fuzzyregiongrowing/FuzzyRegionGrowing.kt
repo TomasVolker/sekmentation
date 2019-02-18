@@ -42,5 +42,6 @@ fun medianKernel(input: DoubleArray2D) =
 
 
 fun main() {
-
+    val testImage = loadImage("data/P1_Image_originale.png")
+//    val pixelSeed = PixelCoordinates()
 }
