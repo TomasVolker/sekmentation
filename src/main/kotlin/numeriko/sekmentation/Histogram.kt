@@ -24,7 +24,7 @@ open class ImageHistogram(override val nBins: Int): Histogram<DoubleArray2D> {
             }
 
     fun floatTo8Bits(image: DoubleArray2D) =
-        doubleArray2D(image.shape0, image.shape1) { i0, i1 -> (image[i0,i1] * 256.0).toInt() }
+        doubleArray2D(image.shape0, image.shape1) { i0, i1 -> (image[i0,i1] * 255.0).toInt() }
 
     fun equalizedHistogram(image: DoubleArray2D): DoubleArray1D =
             estimateHistogram(image).let {
