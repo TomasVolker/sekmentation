@@ -46,7 +46,7 @@ data class ProtoRegion(val mainPixel: Pixel, val pixelList: List<Pixel>) {
             )
 }
 
-class FuzzyRegionGrowing(val seed: PixelCoordinates, val neighboorhoodSize: Int): PipelineFilter2D {
+class FuzzyConnectedness(val seed: PixelCoordinates, val neighboorhoodSize: Int): PipelineFilter2D {
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
         val seedPixel = Pixel(input[seed.x, seed.y], seed)
         val seedRegion = getProtoAdjacent(seedPixel, input)
