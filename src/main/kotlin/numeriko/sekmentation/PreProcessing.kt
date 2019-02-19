@@ -1,6 +1,7 @@
 package numeriko.sekmentation
 
 import tomasvolker.kyplot.dsl.*
+import tomasvolker.numeriko.core.functions.cumulativeSum
 import tomasvolker.numeriko.core.index.All
 import tomasvolker.numeriko.core.interfaces.array1d.double.DoubleArray1D
 import tomasvolker.numeriko.core.interfaces.array1d.generic.lastIndex
@@ -31,62 +32,28 @@ class MedianFilter2D(val kernel: FilterKernel<DoubleArray2D>): PipelineFilter2D 
                 if (i < kernel.shape[0] || i > edgeX || j < kernel.shape[1] || j > edgeY)
                     destination[i,j] = input[i,j]
                 else
-                    destination[i,j] = convolveWithKernel(input, PixelPosition(i, j)).estimateMedian()
-            }
-        }
-
-        showFigure {
-            allPlots {
-                position {
-                    columnCount = 2
-                    rowCount = 1
-                }
-            }
-
-            plot {
-                image {
-                    data = input.toListOfLists()
-                }
-                position {
-                    row = 0
-                    column = 0
-                }
-            }
-
-            plot {
-                image {
-                    data = destination.toListOfLists()
-                }
-                position {
-                    row = 0
-                    column = 1
-                }
+                    destination[i,j] = convolveWithKernel(input, PixelCoordinates(i, j)).estimateMedian()
             }
         }
     }
 
-    private fun convolveWithKernel(image: DoubleArray2D, position: PixelPosition) =
+    private fun convolveWithKernel(image: DoubleArray2D, position: PixelCoordinates) =
             doubleArray2D(kernel.shape[0], kernel.shape[1]) { i0, i1 ->
                 image[i0 + position.x,i1 + position.y] * kernel.window[i0,i1]
             }
 
     private fun DoubleArray2D.estimateMedian() = flatten().median()
-
-    inner class PixelPosition(val x: Int, val y: Int)
 }
 
-class HistogramEqualizationFilter(override val nBins: Int): PipelineFilter2D, ImageHistogram(nBins) {
+class HistogramEqualizationFilter: PipelineFilter2D {
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
-        val grayScale = equalizedHistogram(floatTo8Bits(input))
-
-        showStem {
-            x = linearSpace(0.0, grayScale.size.toDouble(), grayScale.size)
-            y = grayScale
+        val grayScale = List(input.size) { i ->
+            input[i,All] to input.flatten().cumulativeSum()[i until i + input.shape0]
         }
 
         for (i in 0 until input.shape0) {
             for (j in 0 until input.shape1) {
-                destination[i,j] = grayScale[input[i,j].toInt()]
+                destination[i,j] = input[i,j] / grayScale[i].second[j]
             }
         }
     }

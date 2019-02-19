@@ -11,6 +11,7 @@ import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.intArray1D
 import tomasvolker.numeriko.core.interfaces.factory.toDoubleArray1D
 import tomasvolker.numeriko.core.linearalgebra.linearSpace
+import kotlin.math.min
 
 fun IntArray1D.cumulativeSum() = map { reduce { acc, i -> acc + it } }.toDoubleArray1D()
 
@@ -21,22 +22,23 @@ interface Histogram<T> {
 
 open class ImageHistogram(override val nBins: Int): Histogram<DoubleArray2D> {
 
-    override fun estimateHistogram(input: DoubleArray2D): IntArray1D =
-            intArray1D(nBins) { i ->
-                input.count { it.toInt() == i }
-            }
-
     fun floatTo8Bits(image: DoubleArray2D): DoubleArray2D =
         doubleArray2D(image.shape0, image.shape1) { i0, i1 -> (image[i0,i1] * 255.0).toInt() }
 
-    fun getEvenSpread(input: DoubleArray2D): List<Double> {
-        val bins = getBins(input.linearView())
+    override fun estimateHistogram(input: DoubleArray2D): IntArray1D {
+        val bins = getBins(input.linearView()).sorted()
+        val maxBins = bins.last()
+        val minBins = bins.first()
+        val stepSize = (maxBins - minBins) / nBins
 
-        if (bins.size <= nBins)
-            return bins
-        else {
-            TODO("do the means in each bin")
-        }
+        return if (bins.size == nBins)
+            intArray1D(nBins) { i ->
+                input.count { it == bins[i] }
+            }
+        else
+            intArray1D(nBins) { i ->
+                input.filter { it < i * stepSize + minBins && it > (i - 1) * stepSize + minBins }.count()
+            }
     }
 
     private fun getBins(input: DoubleArray1D): List<Double> {
