@@ -29,11 +29,10 @@ class FuzzyRegionGrowing(val kernel: FilterKernel<DoubleArray2D>,
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
         val auxMatrix: MutableDoubleArray2D = destination.copy()
 
-        HistogramEqualizationFilter(nBins).filter(input, auxMatrix).also { println("Histogram eq done") }
+        HistogramEqualizationFilter().filter(input, auxMatrix).also { println("Histogram eq done") }
         showImage { data = auxMatrix.toListOfLists() }
         MedianFilter2D(kernel).filter(auxMatrix, destination).also { println("Median filter done") }
         showImage { data = destination.toListOfLists() }
-        println("max ${destination.max()} min ${destination.min()}")
         FuzzyConnectedness(pixelSeed, neighborhoodSize).filter(destination, auxMatrix).also { println("Fuzzy done") }
         showImage { data = auxMatrix.toListOfLists() }
         ThresholdFilter(nBins).filter(auxMatrix, destination).also { println("Threshold done") }
