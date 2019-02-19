@@ -4,10 +4,9 @@ import org.openrndr.Extension
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.Drawer
+import org.openrndr.draw.isolated
 import org.openrndr.math.Matrix44
 import org.openrndr.math.Vector2
-import org.openrndr.shape.Rectangle
-import tomasvolker.numeriko.core.primitives.modulo
 import kotlin.math.floor
 
 class Grid2D : Extension {
@@ -18,49 +17,53 @@ class Grid2D : Extension {
     var deltaY: Double = 100.0
 
     var color = ColorRGBa.GRAY
-    var strokeWeight = 1.0
+    var gridWeight = 1.0
 
-
-    operator fun Matrix44.times(rectangle: Rectangle) =
-        Rectangle(
-            corner = (this * rectangle.corner.vector3().xyz1).xyz.xy,
-            width = this.c0r0 * rectangle.width,
-            height = this.c1r1 * rectangle.height
-        )
+    infix fun Double.modulo(other: Double) = ((this % other) + other) % other
 
     override fun beforeDraw(drawer: Drawer, program: Program) {
 
-        drawer.stroke = color
-        drawer.strokeWeight = strokeWeight
+        drawer.run {
 
-        val worldBounds = drawer.view.inversed * drawer.bounds
+            stroke = color
+            strokeWeight = gridWeight
 
-        val offsetX = worldBounds.x modulo deltaX
-        val countX = floor((worldBounds.width - offsetX) / deltaX).toInt() + 2
+            val gridXDelta = view.c0r0 * deltaX
+            val gridXOffset = view.c3r0 modulo gridXDelta
+            val countX = floor(drawer.width / gridXDelta).toInt() + 1
 
-        drawer.lineStrips(
-            List(countX) { i ->
-                val x = worldBounds.x - offsetX + (i+1) * deltaX
-                listOf(
-                    Vector2(x, worldBounds.y),
-                    Vector2(x, worldBounds.y + worldBounds.height)
+            val gridYDelta = view.c1r1 * deltaY
+            val gridYOffset = view.c3r1 modulo gridYDelta
+            val countY = floor(drawer.width / gridYDelta).toInt() + 1
+
+            isolated {
+                model = Matrix44.IDENTITY
+                view = Matrix44.IDENTITY
+                ortho()
+
+                lineStrips(
+                    List(countX) { i ->
+                        val x = gridXOffset + i * gridXDelta
+                        listOf(
+                            Vector2(x, 0.0),
+                            Vector2(x, height.toDouble())
+                        )
+                    }
                 )
-            }
-        )
 
-
-        val offsetY = worldBounds.y modulo deltaY
-        val countY = floor((worldBounds.height - offsetY) / deltaY).toInt() + 2
-
-        drawer.lineStrips(
-            List(countY) { i ->
-                val y = worldBounds.y - offsetY + (i+1) * deltaY
-                listOf(
-                    Vector2(worldBounds.x, y),
-                    Vector2(worldBounds.x + worldBounds.width, y)
+                lineStrips(
+                    List(countY) { i ->
+                        val y = gridYOffset + i * gridYDelta
+                        listOf(
+                            Vector2(0.0, y),
+                            Vector2(width.toDouble(), y)
+                        )
+                    }
                 )
+
             }
-        )
+
+        }
 
     }
 

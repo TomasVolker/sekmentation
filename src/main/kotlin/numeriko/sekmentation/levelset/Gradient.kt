@@ -1,5 +1,7 @@
 package numeriko.sekmentation.levelset
 
+import com.github.tomasvolker.parallel.parallelContext
+import kotlinx.coroutines.async
 import tomasvolker.numeriko.core.dsl.D
 import tomasvolker.numeriko.core.functions.filter2D
 import tomasvolker.numeriko.core.index.All
@@ -45,25 +47,31 @@ fun DoubleArray2D.computeGradient1(): DoubleArray2D =
 fun DoubleArray2D.computeSecondD0(): DoubleArray2D =
     doubleArray2D(shape0, shape1) { i0, i1 ->
         when(i0) {
-            0 -> this[0, i1] + 2 * this[1, i1] + this[2, i1]
-            lastIndex0 -> this[i0 - 2, i1] + 2 * this[i0 - 1, i1] + this[i0, i1]
-            else -> this[i0 - 1, i1] + 2 * this[i0, i1] + this[i0 + 1, i1]
+            0 -> this[0, i1] - 2 * this[1, i1] + this[2, i1]
+            lastIndex0 -> this[i0 - 2, i1] - 2 * this[i0 - 1, i1] + this[i0, i1]
+            else -> this[i0 - 1, i1] - 2 * this[i0, i1] + this[i0 + 1, i1]
         }
     }
 
 fun DoubleArray2D.computeSecondD1(): DoubleArray2D =
     doubleArray2D(shape0, shape1) { i0, i1 ->
         when(i1) {
-            0 -> this[i0, 0] + 2 * this[i0, 1] + this[i0, 2]
-            lastIndex0 -> this[i0, i1 - 2] + 2 * this[i0, i1 - 1] + this[i0, i1]
-            else -> this[i0, i1 - 1] + 2 * this[i0, i1] + this[i0, i1 + 1]
+            0 -> this[i0, 0] - 2 * this[i0, 1] + this[i0, 2]
+            lastIndex1 -> this[i0, i1 - 2] - 2 * this[i0, i1 - 1] + this[i0, i1]
+            else -> this[i0, i1 - 1] - 2 * this[i0, i1] + this[i0, i1 + 1]
         }
     }
 
-fun DoubleArray2D.computeGradients(): ImageVectorField =
+fun DoubleArray2D.computeGradients() = parallelContext {
+
+    val g0 = async { computeGradient0() }
+    val g1 = async { computeGradient1() }
+
     ImageVectorField(
-        listOf(computeGradient0(), computeGradient1()).stack(axis = 2)
+        listOf(g0.await(), g1.await()).stack(axis = 2)
     )
+}
+
 
 fun DoubleArray2D.gradientNorm(): DoubleArray2D {
 

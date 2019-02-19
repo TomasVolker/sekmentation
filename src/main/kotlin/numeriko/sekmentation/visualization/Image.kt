@@ -1,7 +1,6 @@
 package numeriko.sekmentation.visualization
 
 import numeriko.sekmentation.levelset.normalizeContrast
-import numeriko.som.PanZoom
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.ColorBuffer

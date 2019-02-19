@@ -1,24 +1,14 @@
 package numeriko.sekmentation.levelset
 
 import numeriko.sekmentation.graph.Grid2DGaussianWeightedGraph
-import numeriko.sekmentation.visualization.Grid2D
-import numeriko.sekmentation.visualization.write
-import numeriko.som.PanZoom
-import org.openrndr.KEY_SPACEBAR
 import org.openrndr.application
-import org.openrndr.color.ColorRGBa
 import org.openrndr.configuration
-import org.openrndr.draw.colorBuffer
-import tomasvolker.numeriko.core.dsl.D
-import tomasvolker.numeriko.core.functions.filter2D
-import tomasvolker.numeriko.core.functions.transpose
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.elementWise
 import tomasvolker.numeriko.core.interfaces.array2d.generic.forEachIndex
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.doubleZeros
 import tomasvolker.numeriko.core.interfaces.factory.nextGaussian
-import tomasvolker.numeriko.core.primitives.indicator
 import tomasvolker.numeriko.core.primitives.squared
 import kotlin.math.*
 import kotlin.random.Random
@@ -31,7 +21,7 @@ fun main() {
             height = 800
             windowResizable = true
         },
-        program = LevelSetProgram(
+        program = LevelSet3DProgram(
             YuanLevelSetAlgorithm(
                 image = doubleArray2D(100, 100) { x, y ->
                     255 * tanh((y - 50) / 5.0) + Random.nextGaussian() * 2.0

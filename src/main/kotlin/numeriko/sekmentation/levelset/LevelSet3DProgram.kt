@@ -11,6 +11,7 @@ import org.openrndr.math.Vector3
 import org.openrndr.math.transforms.rotateX
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.elementWise
+import tomasvolker.numeriko.core.interfaces.array2d.generic.forEachIndex
 import tomasvolker.numeriko.core.primitives.indicator
 
 interface LevelSetAlgorithm {
@@ -24,8 +25,9 @@ interface LevelSetAlgorithm {
 
 }
 
-class LevelSetProgram(
-    val algorithm: LevelSetAlgorithm
+class LevelSet3DProgram(
+    val algorithm: LevelSetAlgorithm,
+    val verticalFactor: Double = 1.0
 ): Program() {
 
     val image get() = algorithm.image
@@ -40,10 +42,20 @@ class LevelSetProgram(
 
         extend(Debug3D())
 
-        buffer.write(image.normalizeContrast())
+        buffer.writeImage(image.normalizeContrast())
 
         keyboard.keyUp.listen { onKeyEvent(it) }
         keyboard.keyRepeat.listen { onKeyEvent(it) }
+
+    }
+
+    fun ColorBuffer.writeImage(image: DoubleArray2D) {
+
+        shadow.buffer.rewind()
+        image.forEachIndex { i0, i1 ->
+            shadow[i0, i1] = ColorRGBa.WHITE.shade(image[i0, i1])
+        }
+        shadow.upload()
 
     }
 
@@ -69,20 +81,20 @@ class LevelSetProgram(
 
             drawStyle.quality = DrawQuality.PERFORMANCE
             model = rotateX(-90.0)
-
-            image(buffer)
-
-
+/*
             isolated {
                 bufferPhi.write(phi.elementWise { (it > 0).indicator() })
-
                 translate(0.0, 0.0, -image.shape0.toDouble())
-
                 image(bufferPhi)
             }
-
-
+*/
             drawPhi()
+
+            drawStyle.blendMode = BlendMode.MULTIPLY
+            fill = ColorRGBa.WHITE.opacify(0.2)
+            rectangle(buffer.bounds)
+            drawStyle.blendMode = BlendMode.ADD
+            image(buffer)
 
         }
 
@@ -95,7 +107,7 @@ class LevelSetProgram(
         lineStrips(
             (0 until image.shape0).map { x ->
                 (0 until image.shape1).map { y ->
-                    Vector3(x.toDouble(), y.toDouble(), phi[x, y])
+                    Vector3(x.toDouble(), y.toDouble(), phi[x, y] * verticalFactor)
                 }
             }
         )
@@ -103,7 +115,7 @@ class LevelSetProgram(
         lineStrips(
             (0 until image.shape1).map { y ->
                 (0 until image.shape0).map { x ->
-                    Vector3(x.toDouble(), y.toDouble(), phi[x, y])
+                    Vector3(x.toDouble(), y.toDouble(), phi[x, y] * verticalFactor)
                 }
             }
         )
