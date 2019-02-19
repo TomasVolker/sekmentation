@@ -2,6 +2,7 @@ package numeriko.sekmentation.fuzzyregiongrowing
 
 import numeriko.sekmentation.*
 import tomasvolker.kyplot.dsl.showImage
+import tomasvolker.kyscript.KyScriptConfig
 import tomasvolker.numeriko.core.dsl.D
 import tomasvolker.numeriko.core.dsl.I
 import tomasvolker.numeriko.core.interfaces.array1d.double.MutableDoubleArray1D
@@ -10,6 +11,7 @@ import tomasvolker.numeriko.core.interfaces.array1d.integer.IntArray1D
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.generic.toListOfLists
+import tomasvolker.numeriko.core.interfaces.factory.doubleArray1D
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.doubleZeros
 import java.awt.image.BufferedImage
@@ -34,16 +36,16 @@ class FuzzyRegionGrowing(val kernel: FilterKernel<DoubleArray2D>,
 
 
 fun loadImage(filename: String): DoubleArray2D {
-    val image = ImageIO.read(File(filename)).data
-    val imageArray: MutableDoubleArray1D = doubleZeros(image.height * image.width).asMutable()
-    image.getPixels(0,0, image.width, image.height, imageArray.toDoubleArray())
+    val image = ImageIO.read(File(filename))
 
-    return doubleArray2D(image.width, image.height) { i0, i1 -> imageArray[i0*i1] }
+    return doubleArray2D(image.height, image.width) { i1, i0 -> image.getRGB(i0, i1) }
 }
 
 
 fun main() {
-    val testImage = loadImage("data/P1_Image_originale.png")
+    KyScriptConfig.defaultPythonPath = "python"
+
+    val testImage = loadImage("data/P1_Image_originale.png").also { showImage { data = it.toListOfLists() } }
     val pixelSeed = PixelCoordinates(testImage.shape0 / 2, testImage.shape1 / 3)
     val filteredImage: MutableDoubleArray2D = doubleZeros(testImage.shape0, testImage.shape1).asMutable()
     val medianKernel = FilterKernel(D[D[1,1,1],D[1,1,1],D[1,1,1]], I[3,3])
