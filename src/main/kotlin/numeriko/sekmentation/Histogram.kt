@@ -14,6 +14,7 @@ import tomasvolker.numeriko.core.linearalgebra.linearSpace
 import kotlin.math.min
 
 fun IntArray1D.cumulativeSum() = map { reduce { acc, i -> acc + it } }.toDoubleArray1D()
+fun IntArray1D.normalized() = map { it / this.sum() }.toDoubleArray1D()
 
 interface Histogram<T> {
     val nBins: Int
@@ -40,6 +41,9 @@ open class ImageHistogram(override val nBins: Int): Histogram<DoubleArray2D> {
                 input.filter { it < i * stepSize + minBins && it > (i - 1) * stepSize + minBins }.count()
             }
     }
+
+    fun normalizedHistogram(input: DoubleArray2D): DoubleArray1D =
+        estimateHistogram(input).let { it.toDoubleArray1D() / it.sum() }
 
     private fun getBins(input: DoubleArray1D): List<Double> {
         return if (input.size == 1)
