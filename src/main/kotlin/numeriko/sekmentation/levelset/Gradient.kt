@@ -11,36 +11,10 @@ import tomasvolker.numeriko.core.interfaces.array2d.generic.lastIndex1
 import tomasvolker.numeriko.core.interfaces.arraynd.double.DoubleArrayND
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.slicing.get
+import tomasvolker.numeriko.core.operations.stack
 import tomasvolker.numeriko.core.primitives.sumDouble
 import kotlin.math.hypot
-/*
-fun DoubleArray2D.filterSame(
-    filter: DoubleArray2D
-): DoubleArray2D {
 
-    val filterCenter0 = filter.shape0 / 2
-    val filterCenter1 = filter.shape1 / 2
-
-    val filterShape0 = filter.shape0
-    val filterShape1 = filter.shape1
-
-    val resultShape0 = this.shape0
-    val resultShape1 = this.shape1
-
-    return doubleArray2D(resultShape0, resultShape1) { i0, i1 ->
-        sumDouble(0 until filterShape0, 0 until filterShape1) { j0, j1 ->
-            val k0 = i0 + j0 - filterCenter0
-            val k1 = i1 + j1 - filterCenter1
-            if (k0 in 0 until resultShape0 && k1 in 0 until resultShape1) {
-                this[k0, k1]
-            } else {
-                padding
-            } * filter[j0, j1]
-        }
-    }
-
-}
-*/
 fun DoubleArray2D.laplacian(): DoubleArray2D {
 
     val filter = D[D[  0,-1, 0 ],
@@ -86,8 +60,10 @@ fun DoubleArray2D.computeSecondD1(): DoubleArray2D =
         }
     }
 
-fun DoubleArray2D.computeGradients(): Pair<DoubleArray2D, DoubleArray2D> =
-    Pair(computeGradient0(), computeGradient1())
+fun DoubleArray2D.computeGradients(): ImageVectorField =
+    ImageVectorField(
+        listOf(computeGradient0(), computeGradient1()).stack(axis = 2)
+    )
 
 fun DoubleArray2D.gradientNorm(): DoubleArray2D {
 
@@ -110,8 +86,11 @@ class ImageVectorField(
 
     }
 
-    val x = data.arrayAlongAxis(axis = 2, index = 0)
-    val y = data.arrayAlongAxis(axis = 2, index = 1)
+    val width get() = data.shape(0)
+    val height get() = data.shape(1)
+
+    val x = data.arrayAlongAxis(axis = 2, index = 0).as2D()
+    val y = data.arrayAlongAxis(axis = 2, index = 1).as2D()
 
     operator fun get(i0: Int, i1: Int): DoubleArray1D =
         data.get(i0, i1, All).as1D()
@@ -120,3 +99,8 @@ class ImageVectorField(
     operator fun component2() = y
 
 }
+
+fun ImageVectorField.norm() =
+        doubleArray2D(width, height) { x, y ->
+            hypot(this.x[x, y], this.y[x, y])
+        }

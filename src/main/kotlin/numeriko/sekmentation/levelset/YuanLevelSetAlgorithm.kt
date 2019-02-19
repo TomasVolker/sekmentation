@@ -7,6 +7,7 @@ import numeriko.som.PanZoom
 import org.openrndr.KEY_SPACEBAR
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
+import org.openrndr.configuration
 import org.openrndr.draw.colorBuffer
 import tomasvolker.numeriko.core.dsl.D
 import tomasvolker.numeriko.core.functions.filter2D
@@ -24,79 +25,34 @@ import kotlin.random.Random
 
 fun main() {
 
-    val image = doubleArray2D(100, 100) { i0, i1 ->
-        255 * (i1 >= 50 + Random.nextInt(-2, 2)).indicator() + Random.nextGaussian() * 5
-    }
-
-    val deltaT = 0.1
-    val alpha = 20.0
-    val lambda0 = 1.03
-    val lambda1 = 1.0
-    val sigma = 3.0
-    val nu = 0.001 * 255.0.squared()
-    val mu = 1.0
-    val epsilon = 1.0
-
-    val levelSet = YuanLevelSetAlgorithm(
-        image = image,
-        kernelDeviation = sigma,
-        deltaT = deltaT,
-        alpha = alpha,
-        epsilon = epsilon,
-        lambda0 = lambda0,
-        lambda1 = lambda1,
-        nu = nu,
-        mu = mu
-    )
-
-    application {
-        configure {
-            width = 800
-            height = 600
+    application(
+        configuration = configuration {
+            width = 1000
+            height = 800
             windowResizable = true
-        }
-        program {
-
-            backgroundColor = ColorRGBa.BLUE.shade(0.2)
-
-            extend(PanZoom())
-            extend(Grid2D())
-
-            val buffer = colorBuffer(image.shape0, image.shape1)
-            val bufferPhi = colorBuffer(image.shape0, image.shape1)
-
-            buffer.write(image.normalizeContrast())
-
-            keyboard.keyUp.listen {
-                if (it.key == KEY_SPACEBAR) {
-                    levelSet.step()
-                    println("step: ${levelSet.step}")
-                }
-            }
-
-            extend {
-
-                drawer.image(buffer)
-
-                bufferPhi.write(levelSet.phi.normalizeContrast())
-                drawer.image(bufferPhi, image.shape0.toDouble(), 0.0)
-
-                bufferPhi.write(levelSet.phiGradientX.normalizeContrast())
-                drawer.image(bufferPhi, 0.0, image.shape1.toDouble())
-
-                bufferPhi.write(levelSet.phiGradientY.normalizeContrast())
-                drawer.image(bufferPhi, image.shape0.toDouble(), image.shape1.toDouble())
-
-
-            }
-        }
-    }
+        },
+        program = LevelSetProgram(
+            YuanLevelSetAlgorithm(
+                image = doubleArray2D(100, 100) { x, y ->
+                    255 * tanh((y - 50) / 5.0) + Random.nextGaussian() * 2.0
+                },
+                kernelDeviation = 3.0,
+                deltaT = 1e-1,
+                alpha = 20.0,
+                epsilon = 1.0,
+                lambda0 = 1.03,
+                lambda1 = 1.0,
+                nu = 0.001 * 255.squared(),
+                mu = 1.0
+            )
+        )
+    )
 
 
 }
 
 class YuanLevelSetAlgorithm(
-    val image: DoubleArray2D,
+    override val image: DoubleArray2D,
     val kernelDeviation: Double,
     val deltaT: Double,
     val alpha: Double,
@@ -105,12 +61,15 @@ class YuanLevelSetAlgorithm(
     val lambda1: Double,
     val nu: Double,
     val mu: Double
-) {
+): LevelSetAlgorithm {
 
     val width = image.shape0
     val height = image.shape1
 
-    var step: Int = 0
+    override val finished: Boolean
+        get() = false
+
+    override var step: Int = 0
         private set
 
     val lattice = Grid2DGaussianWeightedGraph(
@@ -136,17 +95,14 @@ class YuanLevelSetAlgorithm(
         else -> error("invalid set")
     }
 
-    val phi = doubleArray2D(width, height) { i0, i1 ->
-        if (i1 > height / 2)
-            -1.0
-        else
-            1.0
+    override val phi = doubleArray2D(width, height) { x, y ->
+        if (hypot(x - width / 2.0, y - height / 2.0 - 20) < 10.0) 1.0 else -1.0
     }.asMutable()
 
-    val phiLaplacian = doubleZeros(image.shape0, image.shape1).asMutable()
+    var phiLaplacian = doubleZeros(image.shape0, image.shape1)
 
-    val phiGradientX = doubleZeros(image.shape0, image.shape1).asMutable()
-    val phiGradientY = doubleZeros(image.shape0, image.shape1).asMutable()
+    var phiGradientX = doubleZeros(image.shape0, image.shape1)
+    var phiGradientY = doubleZeros(image.shape0, image.shape1)
     var phiGradientDirectionDiv = doubleZeros(image.shape0, image.shape1)
 
     fun node(x: Int, y: Int) = lattice.node(x, y)
@@ -190,7 +146,7 @@ class YuanLevelSetAlgorithm(
         val dev = weightedSum(x, y) { u, v -> (image[u, v] - mean).squared() * membership(set, u, v) } / normalization
 
         meanImage(set)[x, y] = mean
-        devImage(set)[x, y] = dev
+        devImage(set)[x, y] = dev + 1e-8
     }
 
     fun information(
@@ -207,43 +163,18 @@ class YuanLevelSetAlgorithm(
 
     fun updatePhiLaplacian() {
 
-        val filter = D[D[  0,-1, 0 ],
-                       D[ -1, 4,-1 ],
-                       D[  0,-1, 0 ]] / 8
-
-        phi.filter2DTo(
-            filter = filter,
-            destination = phiLaplacian
-        )
+        phiLaplacian = phi.computeSecondD0() + phi.computeSecondD1()
 
     }
 
     fun updatePhiGradientDirectionDiv() {
 
-        val sobelY = D[D[ -1, 0, 1 ],
-                       D[ -2, 0, 2 ],
-                       D[ -1, 0, 1 ]] / 8
+        val gradients = phi.computeGradients()
 
-        val sobelX = sobelY.transpose().copy()
+        phiGradientX = gradients.x / (gradients.norm() + 1e-8)
+        phiGradientY = gradients.y / (gradients.norm() + 1e-8)
 
-        phi.filter2DTo(
-            filter = sobelX,
-            destination = phiGradientX
-        )
-
-        phi.filter2DTo(
-            filter = sobelY,
-            destination = phiGradientY
-        )
-
-        phi.forEachIndex { i0, i1 ->
-            val norm = hypot(phiGradientX[i0, i1], phiGradientY[i0, i1]) + 0.01
-            phiGradientX[i0, i1] /= norm
-            phiGradientY[i0, i1] /= norm
-        }
-
-        phiGradientDirectionDiv = phiGradientX.filter2D(sobelX) + phiGradientY.filter2D(sobelY)
-
+        phiGradientDirectionDiv = phiGradientX.computeGradient0() + phiGradientY.computeGradient1()
     }
 
     fun dPhiDt(x: Int, y: Int): Double {
@@ -270,7 +201,7 @@ class YuanLevelSetAlgorithm(
 
     }
 
-    fun step() {
+    override fun step() {
 
         estimateDistributions()
 
@@ -278,7 +209,7 @@ class YuanLevelSetAlgorithm(
         updatePhiLaplacian()
 
         phi.forEachIndex { x, y ->
-            phi[x, y] -= deltaT * dPhiDt(x, y)
+            phi[x, y] += deltaT * dPhiDt(x, y)
         }
 
         step++
