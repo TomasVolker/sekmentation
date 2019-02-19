@@ -11,6 +11,7 @@ version = "0.1"
 repositories {
     mavenCentral()
     maven { setUrl("http://dl.bintray.com/tomasvolker/maven") }
+    maven { url = uri("https://dl.bintray.com/openrndr/openrndr/") }
 }
 
 val openrndrVersion = "0.3.30"
