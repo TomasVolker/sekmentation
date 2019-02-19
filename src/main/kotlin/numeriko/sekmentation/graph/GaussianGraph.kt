@@ -68,7 +68,7 @@ class Grid2DGaussianWeightedGraph(
 
         for (i in minX..maxX) {
             for (j in minY.. maxY) {
-                block(x, y)
+                block(i, j)
             }
         }
 
