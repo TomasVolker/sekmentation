@@ -34,7 +34,6 @@ class LevelSet3DProgram(
     val phi get() = algorithm.phi
 
     val buffer by lazy { colorBuffer(image.shape0, image.shape1) }
-    val bufferPhi by lazy { colorBuffer(image.shape0, image.shape1) }
 
     override fun setup() {
 

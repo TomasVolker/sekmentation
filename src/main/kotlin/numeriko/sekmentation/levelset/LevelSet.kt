@@ -1,19 +1,14 @@
 package numeriko.sekmentation.levelset
 
 import com.github.tomasvolker.parallel.parallelContext
-import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.openrndr.application
 import org.openrndr.configuration
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
-import tomasvolker.numeriko.core.interfaces.array2d.double.elementWise
-import tomasvolker.numeriko.core.interfaces.array2d.double.times
-import tomasvolker.numeriko.core.interfaces.array2d.generic.forEachIndex
-import tomasvolker.numeriko.core.interfaces.array2d.generic.lastIndex0
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.primitives.squared
 import java.io.File
 import javax.imageio.ImageIO
-import kotlin.math.absoluteValue
 import kotlin.math.hypot
 
 val Int.gray get(): Double {
@@ -45,7 +40,7 @@ fun main() {
             LevelSet(
                 image = image,
                 deltaT = 1e-1,
-                v = 0.5
+                speed = 0.5
             ),
             verticalFactor = 10.0
         )
@@ -58,7 +53,7 @@ fun main() {
 class LevelSet(
     override val image: DoubleArray2D,
     val deltaT: Double,
-    val v: Double = 1.0
+    val speed: Double = 1.0
 ): LevelSetAlgorithm {
 
     override var step: Int = 0
@@ -89,53 +84,39 @@ class LevelSet(
     }.asMutable()
 
     override fun step() {
-        val phiGradients = phi.computeGradients()
 
-        val gradientNorm = elementWise(phiGradients.x, phiGradients.y) { x, y ->
-            hypot(x, y)
-        }
+        val phiCopy = phi.copy()
 
-        val laplacian = phi.computeSecondD0() + phi.computeSecondD1()
+        parallelContext {
 
-        phi.forEachIndex { x, y ->
-            phi[x, y] += deltaT * force[x, y] * (gradientNorm[x, y] * v + 2 * laplacian[x, y])
+            (0 until width).inIntervalsOf(100).forEach { interval ->
+
+                launch {
+                    for(i0 in interval) {
+                        for (i1 in 0 until height) {
+
+                            phi[i0, i1] += deltaT * (
+                                force[i0, i1] * (phiCopy.gradientNormAt(i0, i1) * speed + 2 * phiCopy.laplacianAt(i0, i1))
+                            )
+
+                        }
+                    }
+                }
+
+            }
+
         }
 
         step++
     }
 
+    fun DoubleArray2D.gradientNormAt(i0: Int, i1: Int): Double =
+            hypot(gradient0At(i0, i1), gradient1At(i0, i1))
+
 }
 
-/*
-fun DoubleArray2D.computeGradientDirectionDivergence(): DoubleArray2D {
-    doubleArray2D(shape0, shape1) { i0, i1 ->
-        when (i0) {
-            0 -> TODO()
-            lastIndex0 -> TODO()
-            else -> {
-
-                when(i1) {
-                    0 -> TODO()
-                    lastIndex0 -> TODO()
-                    else -> {
-
-
-                        val grad0p = this[i0+1, i1] - this[i0, i1]
-                        val grad0m = this[i0, i1] - this[i0-1, i1]
-                        val grad0c = (grad0p + grad0m) / 2
-
-                        val grad1p = this[i0, i1+1] - this[i0, i1]
-                        val grad1m = this[i0, i1] - this[i0, i1-1]
-                        val grad1c = (grad1p + grad1m) / 2
-
-                        val gradNorm = hypot(grad0c, grad1c)
-
-                        grad0p / gradNorm
-                    }
-                }
-
-            }
+fun IntRange.inIntervalsOf(size: Int): List<IntRange> =
+    ((this step size) + (last + 1))
+        .zipWithNext { current, next ->
+            current until next
         }
-    }
-}
-*/

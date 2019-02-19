@@ -17,50 +17,48 @@ import tomasvolker.numeriko.core.operations.stack
 import tomasvolker.numeriko.core.primitives.sumDouble
 import kotlin.math.hypot
 
-fun DoubleArray2D.laplacian(): DoubleArray2D {
-
-    val filter = D[D[  0,-1, 0 ],
-                   D[ -1, 4,-1 ],
-                   D[  0,-1, 0 ]]
-
-    return this.filter2D(filter)
-}
-
-fun DoubleArray2D.computeGradient0(): DoubleArray2D =
-        doubleArray2D(shape0, shape1) { i0, i1 ->
-            when(i0) {
-                0 -> this[1, i1] - this[0, i1]
-                lastIndex0 -> this[i0, i1] - this[i0 - 1, i1]
-                else -> (this[i0 + 1, i1] - this[i0 - 1, i1]) / 2.0
-            }
+fun DoubleArray2D.gradient0At(i0: Int, i1: Int): Double =
+        when(i0) {
+            0 -> this[1, i1] - this[0, i1]
+            lastIndex0 -> this[i0, i1] - this[i0 - 1, i1]
+            else -> (this[i0 + 1, i1] - this[i0 - 1, i1]) / 2.0
         }
 
-fun DoubleArray2D.computeGradient1(): DoubleArray2D =
-    doubleArray2D(shape0, shape1) { i0, i1 ->
+fun DoubleArray2D.gradient1At(i0: Int, i1: Int): Double =
         when(i1) {
             0 -> this[i0, 1] - this[i0, 0]
             lastIndex1 -> this[i0, i1] - this[i0, i1 - 1]
             else -> (this[i0, i1 + 1] - this[i0, i1 - 1]) / 2.0
         }
+
+fun DoubleArray2D.computeGradient0(): DoubleArray2D =
+        doubleArray2D(shape0, shape1) { i0, i1 -> gradient0At(i0, i1) }
+
+fun DoubleArray2D.computeGradient1(): DoubleArray2D =
+    doubleArray2D(shape0, shape1) { i0, i1 -> gradient1At(i0, i1) }
+
+fun DoubleArray2D.secondDerivative0At(i0: Int, i1: Int): Double =
+    when(i0) {
+        0 -> this[0, i1] - 2 * this[1, i1] + this[2, i1]
+        lastIndex0 -> this[i0 - 2, i1] - 2 * this[i0 - 1, i1] + this[i0, i1]
+        else -> this[i0 - 1, i1] - 2 * this[i0, i1] + this[i0 + 1, i1]
     }
 
 fun DoubleArray2D.computeSecondD0(): DoubleArray2D =
-    doubleArray2D(shape0, shape1) { i0, i1 ->
-        when(i0) {
-            0 -> this[0, i1] - 2 * this[1, i1] + this[2, i1]
-            lastIndex0 -> this[i0 - 2, i1] - 2 * this[i0 - 1, i1] + this[i0, i1]
-            else -> this[i0 - 1, i1] - 2 * this[i0, i1] + this[i0 + 1, i1]
-        }
+    doubleArray2D(shape0, shape1) { i0, i1 -> secondDerivative0At(i0, i1) }
+
+fun DoubleArray2D.secondDerivative1At(i0: Int, i1: Int): Double =
+    when(i1) {
+        0 -> this[i0, 0] - 2 * this[i0, 1] + this[i0, 2]
+        lastIndex1 -> this[i0, i1 - 2] - 2 * this[i0, i1 - 1] + this[i0, i1]
+        else -> this[i0, i1 - 1] - 2 * this[i0, i1] + this[i0, i1 + 1]
     }
 
 fun DoubleArray2D.computeSecondD1(): DoubleArray2D =
-    doubleArray2D(shape0, shape1) { i0, i1 ->
-        when(i1) {
-            0 -> this[i0, 0] - 2 * this[i0, 1] + this[i0, 2]
-            lastIndex1 -> this[i0, i1 - 2] - 2 * this[i0, i1 - 1] + this[i0, i1]
-            else -> this[i0, i1 - 1] - 2 * this[i0, i1] + this[i0, i1 + 1]
-        }
-    }
+    doubleArray2D(shape0, shape1) { i0, i1 -> secondDerivative1At(i0, i1) }
+
+fun DoubleArray2D.laplacianAt(i0: Int, i1: Int): Double =
+    secondDerivative0At(i0, i1) + secondDerivative1At(i0, i1)
 
 fun DoubleArray2D.computeGradients() = parallelContext {
 
