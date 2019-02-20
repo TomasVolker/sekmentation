@@ -31,8 +31,7 @@ val Int.gray get(): Double {
 
 class FuzzyRegionGrowing(val kernel: FilterKernel<DoubleArray2D>,
                          val nBins: Int = 256,
-                         val pixelSeed: PixelCoordinates,
-                         val neighborhoodSize: Int = 9): PipelineFilter2D {
+                         val pixelSeed: PixelCoordinates): PipelineFilter2D {
 
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
         val auxMatrix: MutableDoubleArray2D = destination.copy()
@@ -41,7 +40,7 @@ class FuzzyRegionGrowing(val kernel: FilterKernel<DoubleArray2D>,
 //        showImage { data = auxMatrix.toListOfLists() }
         MedianFilter2D(kernel).filter(auxMatrix, destination).also { println("Median filter done") }
 //        showImage { data = destination.toListOfLists() }
-        FuzzyConnectedness(pixelSeed, neighborhoodSize).filter(destination, auxMatrix).also { println("Fuzzy done") }
+        FuzzyConnectedness(pixelSeed).filter(destination, auxMatrix).also { println("Fuzzy done") }
         showImage { data = auxMatrix.toListOfLists() }
         ThresholdFilter(nBins, ImageHistogram(256)).filter(auxMatrix, destination).also { println("Threshold done") }
     }
