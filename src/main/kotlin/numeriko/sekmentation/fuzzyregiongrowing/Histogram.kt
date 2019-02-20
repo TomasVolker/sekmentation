@@ -1,17 +1,11 @@
-package numeriko.sekmentation
+package numeriko.sekmentation.fuzzyregiongrowing
 
-import tomasvolker.kyplot.dsl.showImage
-import tomasvolker.kyplot.dsl.showStem
-import tomasvolker.numeriko.core.functions.differences
 import tomasvolker.numeriko.core.interfaces.array1d.double.DoubleArray1D
-import tomasvolker.numeriko.core.interfaces.array1d.double.elementWise
 import tomasvolker.numeriko.core.interfaces.array1d.integer.IntArray1D
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.intArray1D
 import tomasvolker.numeriko.core.interfaces.factory.toDoubleArray1D
-import tomasvolker.numeriko.core.linearalgebra.linearSpace
-import kotlin.math.min
 
 fun IntArray1D.cumulativeSum() = map { reduce { acc, i -> acc + it } }.toDoubleArray1D()
 fun IntArray1D.normalized() = map { it / this.sum() }.toDoubleArray1D()

@@ -43,10 +43,8 @@ class SimpleLevelSet(
                         for (i1 in 0 until height) {
 
                             phi[i0, i1] += deltaT * (
-                                    force[i0, i1] * (phiCopy.gradientNormAt(
-                                        i0,
-                                        i1
-                                    ) * speed + 2 * phiCopy.laplacianAt(i0, i1))
+                                    force[i0, i1] * (phiCopy.gradientNormAt(i0, i1) *
+                                    speed + 2 * phiCopy.laplacianAt(i0, i1))
                                     )
 
                         }

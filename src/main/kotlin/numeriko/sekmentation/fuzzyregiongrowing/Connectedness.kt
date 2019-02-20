@@ -1,4 +1,4 @@
-package numeriko.sekmentation
+package numeriko.sekmentation.fuzzyregiongrowing
 
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
@@ -50,7 +50,7 @@ fun List<Double>.computeStatistics() = Statistic(
 fun DoubleArray2D.estimateConnectivityStatistic(
     point: Point,
     connectivityFunction: (a: Double, b: Double)->Double
-): Statistic  = point.neighborhood()
+): Statistic = point.neighborhood()
         .filter { isValidPoint(it) }
         .allPairs()
         .filter { it.first.isNeighbor(it.second) }
@@ -73,20 +73,19 @@ class FuzzyConnectednessAlgorithm(
             .let { queue.addAll(it) }
     }
 
+    val sumStats = image.estimateConnectivityStatistic(seed) { a, b -> a + b }
+    val diffStats = image.estimateConnectivityStatistic(seed) { a, b -> (a - b).absoluteValue }
+
     fun Statistic.gaussian(x: Double) =
             exp(-(x - mean).squared() / (2 * deviation.squared()))
 
     fun pixelAffinity(
         center: Point,
         neighbor: Point
-    ): Double {
+    ): Double =
+        (sumStats.gaussian(image[center] + image[neighbor]) +
+        diffStats.gaussian((image[center] - image[neighbor]).absoluteValue)) / 2
 
-        val sumStats = image.estimateConnectivityStatistic(center) { a, b -> a + b }
-        val diffStats = image.estimateConnectivityStatistic(center) { a, b -> (a - b).absoluteValue }
-
-        return (sumStats.gaussian(image[center] + image[neighbor]) +
-                diffStats.gaussian((image[center] - image[neighbor]).absoluteValue)) / 2
-    }
 
     fun finished() = queue.isEmpty()
 
@@ -94,7 +93,7 @@ class FuzzyConnectednessAlgorithm(
 
         val current = queue.poll() ?: return
 
-        for(neighbor in current.neighborhood()) {
+        for(neighbor in current.neighborhood().filter { image.isValidPoint(it) }) {
 
             val potentialAffinity = min(connectivityMap[current], pixelAffinity(current, neighbor))
 
@@ -117,9 +116,3 @@ class FuzzyConnectednessAlgorithm(
 
 }
 
-
-fun main() {
-
-
-
-}

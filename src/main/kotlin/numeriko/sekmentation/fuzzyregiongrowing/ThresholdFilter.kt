@@ -1,9 +1,8 @@
-package numeriko.sekmentation
+package numeriko.sekmentation.fuzzyregiongrowing
 
 import tomasvolker.numeriko.core.interfaces.array1d.integer.IntArray1D
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
-import kotlin.math.max
 
 class ThresholdFilter(override val nBins: Int, histogram: Histogram<DoubleArray2D>):
     PipelineFilter2D, Histogram<DoubleArray2D> by histogram {

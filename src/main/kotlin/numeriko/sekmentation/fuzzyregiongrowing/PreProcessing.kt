@@ -1,6 +1,5 @@
-package numeriko.sekmentation
+package numeriko.sekmentation.fuzzyregiongrowing
 
-import tomasvolker.numeriko.core.functions.cumulativeSum
 import tomasvolker.numeriko.core.index.All
 import tomasvolker.numeriko.core.interfaces.array1d.double.DoubleArray1D
 import tomasvolker.numeriko.core.interfaces.array1d.generic.lastIndex
@@ -10,6 +9,7 @@ import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.generic.forEachIndex
 import tomasvolker.numeriko.core.interfaces.arraynd.double.DoubleArrayND
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
+import tomasvolker.numeriko.core.interfaces.factory.doubleZeros
 import tomasvolker.numeriko.core.interfaces.factory.toDoubleArray1D
 
 data class FilterKernel<T: DoubleArrayND>(val window: T, val shape: IntArray1D)
@@ -18,7 +18,8 @@ private fun DoubleArray2D.flatten() = List(shape0) { i -> this[i,All] }.flatten(
 
 private fun DoubleArray1D.median() = sorted()[lastIndex / 2]
 
-class MedianFilter2D(val kernel: FilterKernel<DoubleArray2D>): PipelineFilter2D {
+class MedianFilter2D(val kernel: FilterKernel<DoubleArray2D>):
+    PipelineFilter2D {
 
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D): Unit {
         val edgeX = input.shape0 - kernel.shape[0]
@@ -29,7 +30,9 @@ class MedianFilter2D(val kernel: FilterKernel<DoubleArray2D>): PipelineFilter2D 
                 if (i < kernel.shape[0] || i > edgeX || j < kernel.shape[1] || j > edgeY)
                     destination[i,j] = input[i,j]
                 else
-                    destination[i,j] = convolveWithKernel(input, PixelCoordinates(i, j)).estimateMedian()
+                    destination[i,j] = convolveWithKernel(input,
+                        PixelCoordinates(i, j)
+                    ).estimateMedian()
             }
         }
     }
@@ -58,3 +61,24 @@ class HistogramEqualizationFilter(histogram: Histogram<DoubleArray2D>): Pipeline
 
     inner class ImageValue(val value: Double, val x: Int, val y: Int)
 }
+
+fun DoubleArray2D.equalized(): DoubleArray2D {
+
+    val list = mutableListOf<ImageValue>()
+
+    forEachIndex { i0, i1 ->
+        list.add(ImageValue(this[i0,i1], i0, i1))
+    }
+
+    list.sortBy { it.value }
+
+    val result = doubleZeros(shape0, shape1).asMutable()
+
+    list.forEachIndexed { index, value ->
+        result[value.x, value.y] = index.toDouble() / (list.size - 1)
+    }
+
+    return result
+}
+
+class ImageValue(val value: Double, val x: Int, val y: Int)
