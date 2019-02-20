@@ -12,6 +12,7 @@ repositories {
     mavenCentral()
     maven { setUrl("http://dl.bintray.com/tomasvolker/maven") }
     maven { url = uri("https://dl.bintray.com/openrndr/openrndr/") }
+    maven { url = uri("https://jitpack.io") }
 }
 
 val openrndrVersion = "0.3.30"
@@ -36,5 +37,7 @@ dependencies {
 
     runtime("org.openrndr:openrndr-gl3:$openrndrVersion")
     runtime("org.openrndr:openrndr-gl3-natives-$openrndrOS:$openrndrVersion")
+
+    implementation(group = "com.github.tomasvolker", name = "parallel-utils", version = "v1.0")
     
 }
