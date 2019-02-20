@@ -62,7 +62,7 @@ data class ProtoRegion(val mainPixel: Pixel, val pixelList: List<Pixel>) {
     }
 }
 
-class FuzzyConnectedness(val seed: PixelCoordinates, val neighboorhoodSize: Int): PipelineFilter2D {
+class FuzzyConnectedness(val seed: PixelCoordinates): PipelineFilter2D {
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
         val seedPixel = Pixel(input[seed.x, seed.y], seed)
         val pixelQueue: Queue<Pixel> = ArrayDeque()
@@ -95,15 +95,15 @@ class FuzzyConnectedness(val seed: PixelCoordinates, val neighboorhoodSize: Int)
 
     private fun getProtoAdjacent(pixel: Pixel, input: DoubleArray2D) =
             ProtoRegion(pixel,
-                List(neighboorhoodSize) { i ->
-                    val coordX: Int = if (i < sqrt(neighboorhoodSize) / 2 || i > input.shape0 - sqrt(neighboorhoodSize) / 2)
-                        (i + pixel.coordinates.x - floor(sqrt(neighboorhoodSize) / 2.0).toInt()) %
-                            (pixel.coordinates.x + sqrt(neighboorhoodSize).toInt() / 2)
+                List(9) { i ->
+                    val coordX: Int = if (i > 2 || i < input.shape0 - 2)
+                        (i + pixel.coordinates.x - 1) %
+                            (pixel.coordinates.x + 1)
                     else
                         0
-                    val coordY: Int = if (i < sqrt(neighboorhoodSize) / 2 || i > input.shape1 - sqrt(neighboorhoodSize) / 2)
-                        (i + pixel.coordinates.y - floor(sqrt(neighboorhoodSize) / 2.0).toInt()) /
-                            (pixel.coordinates.x + sqrt(neighboorhoodSize).toInt() / 2)
+                    val coordY: Int = if (i > 2 || i < input.shape0 - 2)
+                        (i + pixel.coordinates.y - 1) /
+                            (pixel.coordinates.y + 1)
                     else
                         0
                     Pixel(
