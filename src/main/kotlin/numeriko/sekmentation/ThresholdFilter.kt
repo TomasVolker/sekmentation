@@ -5,7 +5,9 @@ import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
 import kotlin.math.max
 
-class ThresholdFilter(override val nBins: Int): PipelineFilter2D, ImageHistogram(nBins) {
+class ThresholdFilter(override val nBins: Int, histogram: Histogram<DoubleArray2D>):
+    PipelineFilter2D, Histogram<DoubleArray2D> by histogram {
+
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) =
             estimateOptimalThreshold(estimateHistogram(input)).let { threshold ->
                 for (i in 0 until input.shape0) {
