@@ -10,6 +10,7 @@ import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Debug3D
+import org.openrndr.extensions.Screenshots
 import org.openrndr.math.Matrix44
 import org.openrndr.math.Vector3
 import org.openrndr.math.transforms.rotateX
@@ -40,18 +41,25 @@ class LevelSet3DProgram(
     val image get() = algorithm.image
     val phi get() = algorithm.phi
 
-    var stepsPerFrame = 1
-
     val font by lazy { Resources.fontImageMap("IBMPlexMono-Bold.ttf", 16.0) }
 
     val buffer by lazy { colorBuffer(image.shape0, image.shape1) }
+
+    var stepsPerFrame = 1
+    enum class State { IDLE, RUNNING }
+    var state = State.IDLE
 
     override fun setup() {
 
         backgroundColor = ColorRGBa.BLUE.shade(0.2)
 
         extend(FPSDisplay())
+        extend(Screenshots()) {
+            key = 'S'.toInt()
+        }
         extend(Debug3D())
+
+        extend { update() }
 
         buffer.writeImage(image.normalizeContrast())
 
@@ -72,16 +80,29 @@ class LevelSet3DProgram(
 
     fun onKeyEvent(event: KeyEvent) {
         when(event.key) {
-            KEY_SPACEBAR -> update()
+            KEY_SPACEBAR -> toggleState()
             KEY_PLUS -> stepsPerFrame++
             KEY_MINUS -> stepsPerFrame--
         }
     }
 
-    fun update() {
-        repeat(stepsPerFrame) {
-            algorithm.step()
+    fun toggleState() {
+        state = when(state) {
+            State.IDLE -> State.RUNNING
+            State.RUNNING -> State.IDLE
         }
+    }
+
+    fun update() {
+        when(state) {
+            State.IDLE -> {}
+            State.RUNNING -> {
+                repeat(stepsPerFrame) {
+                    algorithm.step()
+                }
+            }
+        }
+
     }
 
     override fun draw() {
@@ -147,7 +168,7 @@ class LevelSet3DProgram(
 
             fill = ColorRGBa.WHITE
 
-            text("Step: ${algorithm.step} Steps per frame: $stepsPerFrame", x = 0.0, y = 16.0)
+            text("$state Step: ${algorithm.step} Steps per frame: $stepsPerFrame", x = 0.0, y = 16.0)
 
         }
 

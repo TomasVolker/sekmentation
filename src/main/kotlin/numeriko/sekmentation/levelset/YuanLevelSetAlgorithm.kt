@@ -17,6 +17,7 @@ fun main() {
 
     application(
         configuration = configuration {
+            title = "Sekmentation"
             width = 1000
             height = 800
             windowResizable = true
@@ -27,7 +28,7 @@ fun main() {
                     255 * tanh((y - 50) / 5.0) + Random.nextGaussian() * 2.0
                 },
                 kernelDeviation = 3.0,
-                deltaT = 1e-1,
+                deltaT = 1e-2,
                 alpha = 20.0,
                 epsilon = 1.0,
                 lambda0 = 1.03,
@@ -89,11 +90,7 @@ class YuanLevelSetAlgorithm(
         if (hypot(x - width / 2.0, y - height / 2.0 - 20) < 10.0) 1.0 else -1.0
     }.asMutable()
 
-    var phiLaplacian = doubleZeros(image.shape0, image.shape1)
-
-    var phiGradientX = doubleZeros(image.shape0, image.shape1)
-    var phiGradientY = doubleZeros(image.shape0, image.shape1)
-    var phiGradientDirectionDiv = doubleZeros(image.shape0, image.shape1)
+    var phiCopy = phi.copy()
 
     fun node(x: Int, y: Int) = lattice.node(x, y)
 
@@ -136,7 +133,7 @@ class YuanLevelSetAlgorithm(
         val dev = weightedSum(x, y) { u, v -> (image[u, v] - mean).squared() * membership(set, u, v) } / normalization
 
         meanImage(set)[x, y] = mean
-        devImage(set)[x, y] = dev + 1e-8
+        devImage(set)[x, y] = dev + 1e-5
     }
 
     fun information(
@@ -151,22 +148,6 @@ class YuanLevelSetAlgorithm(
         return 0.5 * ln(2 * PI * dev2) + (image[u, v] - mean).squared() / (2 * dev2)
     }
 
-    fun updatePhiLaplacian() {
-
-        phiLaplacian = phi.computeSecondD0() + phi.computeSecondD1()
-
-    }
-
-    fun updatePhiGradientDirectionDiv() {
-
-        val gradients = phi.computeGradients()
-
-        phiGradientX = gradients.x / (gradients.norm() + 1e-8)
-        phiGradientY = gradients.y / (gradients.norm() + 1e-8)
-
-        phiGradientDirectionDiv = phiGradientX.computeGradient0() + phiGradientY.computeGradient1()
-    }
-
     fun dPhiDt(x: Int, y: Int): Double {
 
         val e0 = lambda0 * weightedSum(x, y) { u, v -> information(0, x, y, u, v).squared() }
@@ -176,10 +157,10 @@ class YuanLevelSetAlgorithm(
         }
 
         val delta = softDelta(phi[x, y])
+        val gradientNorm = phiCopy.gradientNormAt(x, y)
 
         return - alpha * delta * (e0 - e1 + e2) +
-                nu * delta * phiGradientDirectionDiv[x, y] +
-                mu * (phiLaplacian[x, y] - phiGradientDirectionDiv[x, y])
+                (nu * delta + mu * (gradientNorm / 2 - 1.0)) * 2.0 * phiCopy.laplacianAt(x, y) / (gradientNorm + 1e-8)
     }
 
     fun estimateDistributions() {
@@ -195,8 +176,7 @@ class YuanLevelSetAlgorithm(
 
         estimateDistributions()
 
-        updatePhiGradientDirectionDiv()
-        updatePhiLaplacian()
+        phiCopy = phi.copy()
 
         phi.forEachIndex { x, y ->
             phi[x, y] += deltaT * dPhiDt(x, y)

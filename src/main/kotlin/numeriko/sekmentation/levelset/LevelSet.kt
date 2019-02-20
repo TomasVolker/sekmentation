@@ -1,12 +1,9 @@
 package numeriko.sekmentation.levelset
 
-import com.github.tomasvolker.parallel.parallelContext
-import kotlinx.coroutines.launch
 import org.openrndr.application
 import org.openrndr.configuration
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
-import tomasvolker.numeriko.core.primitives.squared
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.hypot
@@ -37,10 +34,13 @@ fun main() {
             windowResizable = true
         },
         program = LevelSet3DProgram(
-            LevelSet(
+            SimpleLevelSet(
                 image = image,
                 deltaT = 1e-1,
-                speed = 0.5
+                speed = 0.5,
+                initializer = { x, y ->
+                    hypot(x - image.shape0 / 2.0 - 30, y - image.shape1 / 2.0 + 100) < 30.0
+                }
             ),
             verticalFactor = 10.0
         )
@@ -50,72 +50,3 @@ fun main() {
 
 
 
-class LevelSet(
-    override val image: DoubleArray2D,
-    val deltaT: Double,
-    val speed: Double = 1.0
-): LevelSetAlgorithm {
-
-    override var step: Int = 0
-        private set
-
-    override val finished: Boolean
-        get() = false
-
-    val width = image.shape0
-    val height = image.shape1
-
-    val force: DoubleArray2D
-
-    init {
-
-        force = doubleArray2D(width, height) { x, y ->
-            1.0 / (1.0  + image.gradientNormSquaredAt(x, y))
-        }
-
-    }
-
-    override val phi = doubleArray2D(width, height) { x, y ->
-        if (hypot(x - width / 2.0 - 30, y - height / 2.0 + 100) < 60.0) 1.0 else -1.0
-    }.asMutable()
-
-    override fun step() {
-
-        val phiCopy = phi.copy()
-
-        parallelContext {
-
-            (0 until width).inIntervalsOf(50).forEach { interval ->
-
-                launch {
-                    for(i0 in interval) {
-                        for (i1 in 0 until height) {
-
-                            phi[i0, i1] += deltaT * (
-                                force[i0, i1] * (phiCopy.gradientNormAt(i0, i1) * speed + 2 * phiCopy.laplacianAt(i0, i1))
-                            )
-
-                        }
-                    }
-                }
-
-            }
-
-        }
-
-        step++
-    }
-
-    fun DoubleArray2D.gradientNormSquaredAt(i0: Int, i1: Int): Double =
-        gradient0At(i0, i1).squared() + gradient1At(i0, i1).squared()
-
-    fun DoubleArray2D.gradientNormAt(i0: Int, i1: Int): Double =
-            hypot(gradient0At(i0, i1), gradient1At(i0, i1))
-
-}
-
-fun IntRange.inIntervalsOf(size: Int): List<IntRange> =
-    ((this step size) + (last + 1))
-        .zipWithNext { current, next ->
-            current until next
-        }

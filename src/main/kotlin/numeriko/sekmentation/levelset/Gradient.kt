@@ -14,6 +14,7 @@ import tomasvolker.numeriko.core.interfaces.arraynd.double.DoubleArrayND
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
 import tomasvolker.numeriko.core.interfaces.slicing.get
 import tomasvolker.numeriko.core.operations.stack
+import tomasvolker.numeriko.core.primitives.squared
 import tomasvolker.numeriko.core.primitives.sumDouble
 import kotlin.math.hypot
 
@@ -59,6 +60,12 @@ fun DoubleArray2D.computeSecondD1(): DoubleArray2D =
 
 fun DoubleArray2D.laplacianAt(i0: Int, i1: Int): Double =
     secondDerivative0At(i0, i1) + secondDerivative1At(i0, i1)
+
+fun DoubleArray2D.gradientNormSquaredAt(i0: Int, i1: Int): Double =
+    gradient0At(i0, i1).squared() + gradient1At(i0, i1).squared()
+
+fun DoubleArray2D.gradientNormAt(i0: Int, i1: Int): Double =
+    hypot(gradient0At(i0, i1), gradient1At(i0, i1))
 
 fun DoubleArray2D.computeGradients() = parallelContext {
 
