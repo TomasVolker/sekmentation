@@ -22,75 +22,93 @@ data class Pixel(val intensity: Double, val coordinates: PixelCoordinates)
 data class ProtoRegion(val mainPixel: Pixel, val pixelList: List<Pixel>) {
 
     val position get() = mainPixel.coordinates
-    val mean get() = pixelList.fold(pixelList[0].intensity) { acc, pixel -> acc + pixel.intensity } / pixelList.size
-    val std get() = mean.let { mu -> pixelList.fold((pixelList[0].intensity - mu).squared()) { acc, pixel ->
-        acc + (pixel.intensity - mu).squared()
-    } / pixelList.size }
+    val mean get() = pixelList.map { it.intensity }.average()
+    val std get() = mean.let { mu -> sqrt(sumDouble(0 until pixelList.size) { i ->
+        pixelList.map { (it.intensity - mu).squared() }[i] } / (pixelList.size - 1))
+    }
+    val sumMean get() = getSumPairs().average()
+    val sumStd get() = getSumPairs().let { pairs ->
+        sqrt(sumDouble(0 until pairs.size) { i ->
+            pairs.map { (it - pairs.average()).squared() }[i] } / (pairs.size - 1))
+    }
+    val diffMean get() = getDiffPairs().average()
+    val diffStd get() = getDiffPairs().let { pairs ->
+        sqrt(sumDouble(0 until pairs.size) { i ->
+            pairs.map { (it - pairs.average()).squared() }[i]} / (pairs.size - 1))
+    }
 
-    private fun addRegionValues(other: List<Pixel>): List<Pixel> =
-            List(pixelList.size) { i -> Pixel(pixelList[i].intensity + other[i].intensity, other[i].coordinates) }
+    fun getSumPairs(): List<Double> {
+        val sumPairs = mutableListOf<Double>()
 
-    private fun absDiffRegionValues(other: List<Pixel>): List<Pixel> =
-            List(pixelList.size) { i -> Pixel((pixelList[i].intensity - other[i].intensity).absoluteValue, other[i].coordinates) }
-
-    fun add(other: ProtoRegion) =
-        ProtoRegion(
-            mainPixel = Pixel(mainPixel.intensity + other.mainPixel.intensity, other.mainPixel.coordinates),
-            pixelList = addRegionValues(other.pixelList)
-        )
-
-    fun absDifference(other: ProtoRegion) =
-            ProtoRegion(
-                mainPixel = Pixel((mainPixel.intensity - other.mainPixel.intensity).absoluteValue, other.mainPixel.coordinates),
-                pixelList = absDiffRegionValues(other.pixelList)
+        pixelList.forEach { pixel ->
+            sumPairs.addAll(pixelList.filter { it != pixel }
+                .map { it.intensity + pixel.intensity }
             )
+        }
+
+        return sumPairs.toList()
+    }
+
+    fun getDiffPairs(): List<Double> {
+        val diffPairs = mutableListOf<Double>()
+
+        pixelList.forEach { pixel ->
+            diffPairs.addAll(pixelList.filter { it != pixel }
+                .map { (it.intensity - pixel.intensity).absoluteValue }
+            )
+        }
+
+        return diffPairs.toList()
+    }
 }
 
 class FuzzyConnectedness(val seed: PixelCoordinates, val neighboorhoodSize: Int): PipelineFilter2D {
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
         val seedPixel = Pixel(input[seed.x, seed.y], seed)
-        val seedRegion = getProtoAdjacent(seedPixel, input)
         val pixelQueue: Queue<Pixel> = ArrayDeque()
-        val regionQueue: Queue<Pixel> = ArrayDeque()
 
         // Initialization
-        var currRegion = seedRegion
-        regionQueue.addAll(seedRegion.pixelList - seedPixel)
+        var currRegion = getProtoAdjacent(seedPixel, input)
+        pixelQueue.addAll(currRegion.pixelList.filter { it != seedPixel })
         destination.applyElementWise { it * 0.0 }
+        pixelQueue.forEach { pixel ->
+            destination[pixel.coordinates.x, pixel.coordinates.y] = 1.0
+        }
 
-        while (pixelQueue.isNotEmpty() and regionQueue.isNotEmpty()) {
-            if (regionQueue.isEmpty()) {
-                val nextPixel = pixelQueue.poll()
-                regionQueue.addAll(getProtoAdjacent(nextPixel, input).pixelList - nextPixel)
-                currRegion = getProtoAdjacent(nextPixel, input)
-            }
+        while (pixelQueue.isNotEmpty()) {
+            val nextPixel = pixelQueue.poll()
+            currRegion = getProtoAdjacent(nextPixel, input)
+            val currAffinity = min(destination[currRegion.position.x, currRegion.position.y],spelAffinity(currRegion, nextPixel))
 
-            val nextRegion = getProtoAdjacent(regionQueue.poll(), input)
-            val currAffinity = min(destination[currRegion.position.x, currRegion.position.y],spelAffinity(currRegion, nextRegion))
-
-            if (currAffinity > destination[nextRegion.position.x, nextRegion.position.y]) {
-                pixelQueue.add(nextRegion.mainPixel)
-                destination[nextRegion.position.x, nextRegion.position.y] = currAffinity
+            if (currAffinity > destination[nextPixel.coordinates.x, nextPixel.coordinates.y]) {
+                pixelQueue.add(nextPixel)
+                destination[nextPixel.coordinates.x, nextPixel.coordinates.y] = currAffinity
             }
         }
     }
 
-    private fun spelAffinity(pixelRegion: ProtoRegion, other: ProtoRegion): Double {
-        val regionSum: ProtoRegion = pixelRegion.add(other)
-        val regionDiff: ProtoRegion = pixelRegion.absDifference(other)
-
-        return (gaussian(regionSum.mainPixel.intensity, regionSum.mean, regionSum.std) + gaussian(regionDiff.mainPixel.intensity, regionDiff.mean, regionDiff.std)) / 2.0
-    }
+    private fun spelAffinity(pixelRegion: ProtoRegion, pixel: Pixel): Double =
+        (gaussian(pixelRegion.mainPixel.intensity + pixel.intensity, pixelRegion.sumMean, pixelRegion.sumStd) +
+                gaussian((pixelRegion.mainPixel.intensity - pixel.intensity).absoluteValue, pixelRegion.diffMean, pixelRegion.diffMean)) / 2.0
 
     private fun gaussian(x: Double, mean: Double, std: Double) = exp(-(x - mean).squared() / (2.0 * std.squared()))
 
     private fun getProtoAdjacent(pixel: Pixel, input: DoubleArray2D) =
             ProtoRegion(pixel,
                 List(neighboorhoodSize) { i ->
+                    val coordX: Int = if (i < sqrt(neighboorhoodSize) / 2 || i > input.shape0 - sqrt(neighboorhoodSize) / 2)
+                        (i + pixel.coordinates.x - floor(sqrt(neighboorhoodSize) / 2.0).toInt()) %
+                            (pixel.coordinates.x + sqrt(neighboorhoodSize).toInt() / 2)
+                    else
+                        0
+                    val coordY: Int = if (i < sqrt(neighboorhoodSize) / 2 || i > input.shape1 - sqrt(neighboorhoodSize) / 2)
+                        (i + pixel.coordinates.y - floor(sqrt(neighboorhoodSize) / 2.0).toInt()) /
+                            (pixel.coordinates.x + sqrt(neighboorhoodSize).toInt() / 2)
+                    else
+                        0
                     Pixel(
-                        intensity = input[i + pixel.coordinates.x - sqrt(neighboorhoodSize).toInt(),i + pixel.coordinates.y - sqrt(neighboorhoodSize).toInt()],
-                        coordinates = PixelCoordinates(x = i + pixel.coordinates.x - sqrt(neighboorhoodSize).toInt(),
-                            y = i + pixel.coordinates.y - sqrt(neighboorhoodSize).toInt())
+                        intensity = input[coordX, coordY],
+                        coordinates = PixelCoordinates(x = coordX, y = coordY)
                     )
                 }
             )

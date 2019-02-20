@@ -21,7 +21,7 @@ interface Histogram<T> {
     fun estimateHistogram(input: T): IntArray1D
 }
 
-open class ImageHistogram(override val nBins: Int): Histogram<DoubleArray2D> {
+class ImageHistogram(override val nBins: Int): Histogram<DoubleArray2D> {
 
     fun floatTo8Bits(image: DoubleArray2D): DoubleArray2D =
         doubleArray2D(image.shape0, image.shape1) { i0, i1 -> (image[i0,i1] * 255.0).toInt() }
@@ -58,12 +58,4 @@ open class ImageHistogram(override val nBins: Int): Histogram<DoubleArray2D> {
         else
             countTotalBins(input.filter { it == input[0] }.toDoubleArray1D()) + input.count { it == input[0] }
     }
-
-
-    fun equalizedHistogram(image: DoubleArray2D): DoubleArray1D =
-            estimateHistogram(image).let {hist ->
-                hist.cumulativeSum()
-                    .elementWise { it * (hist.max()!! - hist.min()!!) + hist.min()!! } // nasty !! action going on
-                    .differences()
-            }
 }

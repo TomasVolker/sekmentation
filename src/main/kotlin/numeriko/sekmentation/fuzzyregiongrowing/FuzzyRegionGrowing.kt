@@ -1,8 +1,7 @@
 package numeriko.sekmentation.fuzzyregiongrowing
 
 import numeriko.sekmentation.*
-import tomasvolker.kyplot.dsl.showImage
-import tomasvolker.kyplot.dsl.showLine
+import tomasvolker.kyplot.dsl.*
 import tomasvolker.kyscript.KyScriptConfig
 import tomasvolker.numeriko.core.dsl.D
 import tomasvolker.numeriko.core.dsl.I
@@ -33,18 +32,18 @@ val Int.gray get(): Double {
 class FuzzyRegionGrowing(val kernel: FilterKernel<DoubleArray2D>,
                          val nBins: Int = 256,
                          val pixelSeed: PixelCoordinates,
-                         val neighborhoodSize: Int = 8): PipelineFilter2D {
+                         val neighborhoodSize: Int = 9): PipelineFilter2D {
 
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
         val auxMatrix: MutableDoubleArray2D = destination.copy()
 
         HistogramEqualizationFilter(ImageHistogram(256)).filter(input, auxMatrix).also { println("Histogram eq done") }
-        showImage { data = auxMatrix.toListOfLists() }
+//        showImage { data = auxMatrix.toListOfLists() }
         MedianFilter2D(kernel).filter(auxMatrix, destination).also { println("Median filter done") }
-        showImage { data = destination.toListOfLists() }
+//        showImage { data = destination.toListOfLists() }
         FuzzyConnectedness(pixelSeed, neighborhoodSize).filter(destination, auxMatrix).also { println("Fuzzy done") }
         showImage { data = auxMatrix.toListOfLists() }
-        ThresholdFilter(nBins).filter(auxMatrix, destination).also { println("Threshold done") }
+        ThresholdFilter(nBins, ImageHistogram(256)).filter(auxMatrix, destination).also { println("Threshold done") }
     }
 }
 
@@ -61,9 +60,9 @@ fun main() {
     KyScriptConfig.defaultPythonPath = "python"
 
     val testImage = loadImage("data/P1_Image_originale.png")
-    val pixelSeed = PixelCoordinates(testImage.shape0 - 362, testImage.shape1 - 240)
+    val pixelSeed = PixelCoordinates(350, 200)
     val filteredImage: MutableDoubleArray2D = doubleZeros(testImage.shape0, testImage.shape1).asMutable()
-    val medianKernel = FilterKernel(D[D[1,1,1],D[1,2,1],D[1,1,1]], I[3,3])
+    val medianKernel = FilterKernel(D[D[1,1,1],D[1,1,1],D[1,1,1]], I[3,3])
 
     FuzzyRegionGrowing(medianKernel, pixelSeed = pixelSeed).filter(testImage, filteredImage)
 
