@@ -66,16 +66,12 @@ class LevelSet(
     val height = image.shape1
 
     val force: DoubleArray2D
-    val forceGradient: ImageVectorField
 
     init {
 
-        val (gradientX, gradientY) = image.computeGradients()
-
         force = doubleArray2D(width, height) { x, y ->
-            1.0 / (1.0  + gradientX[x, y].squared() + gradientY[x, y].squared())
+            1.0 / (1.0  + image.gradientNormSquaredAt(x, y))
         }
-        forceGradient = force.computeGradients()
 
     }
 
@@ -89,7 +85,7 @@ class LevelSet(
 
         parallelContext {
 
-            (0 until width).inIntervalsOf(100).forEach { interval ->
+            (0 until width).inIntervalsOf(50).forEach { interval ->
 
                 launch {
                     for(i0 in interval) {
@@ -109,6 +105,9 @@ class LevelSet(
 
         step++
     }
+
+    fun DoubleArray2D.gradientNormSquaredAt(i0: Int, i1: Int): Double =
+        gradient0At(i0, i1).squared() + gradient1At(i0, i1).squared()
 
     fun DoubleArray2D.gradientNormAt(i0: Int, i1: Int): Double =
             hypot(gradient0At(i0, i1), gradient1At(i0, i1))

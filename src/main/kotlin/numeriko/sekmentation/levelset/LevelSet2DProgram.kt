@@ -1,5 +1,7 @@
 package numeriko.sekmentation.levelset
 
+import numeriko.sekmentation.Resources
+import numeriko.sekmentation.visualization.FPSDisplay
 import numeriko.sekmentation.visualization.Grid2D
 import numeriko.sekmentation.visualization.PanZoom
 import numeriko.sekmentation.visualization.write
@@ -9,6 +11,7 @@ import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Debug3D
+import org.openrndr.math.Matrix44
 import org.openrndr.math.Vector3
 import org.openrndr.math.transforms.rotateX
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
@@ -26,10 +29,15 @@ class LevelSet2DProgram(
     val buffer by lazy { colorBuffer(image.shape0, image.shape1) }
     val bufferPhi by lazy { colorBuffer(image.shape0, image.shape1) }
 
+    var stepsPerFrame = 1
+
+    val font by lazy { Resources.fontImageMap("IBMPlexMono-Bold.ttf", 16.0) }
+
     override fun setup() {
 
         backgroundColor = ColorRGBa.BLUE.shade(0.2)
 
+        extend(FPSDisplay())
         extend(PanZoom())
         extend(Grid2D())
 
@@ -43,12 +51,15 @@ class LevelSet2DProgram(
     fun onKeyEvent(event: KeyEvent) {
         when(event.key) {
             KEY_SPACEBAR -> update()
+            KEY_PLUS -> stepsPerFrame++
+            KEY_MINUS -> stepsPerFrame--
         }
     }
 
     fun update() {
-        algorithm.step()
-        println("step: ${algorithm.step}")
+        repeat(stepsPerFrame) {
+            algorithm.step()
+        }
     }
 
     override fun draw() {
@@ -61,6 +72,8 @@ class LevelSet2DProgram(
             bufferPhi.writePhi(phi.elementWise { (it > 0).indicator() })
             image(bufferPhi)
 
+            drawStep()
+
         }
 
     }
@@ -72,6 +85,23 @@ class LevelSet2DProgram(
             shadow[i0, i1] = ColorRGBa.RED.opacify(image[i0, i1] * 0.1).shade(0.5)
         }
         shadow.upload()
+
+    }
+
+    private fun Drawer.drawStep() {
+
+        isolated {
+            ortho()
+            view = Matrix44.IDENTITY
+            model = Matrix44.IDENTITY
+
+            fontMap = font
+
+            fill = ColorRGBa.WHITE
+
+            text("Step: ${algorithm.step} Steps per frame: $stepsPerFrame", x = 0.0, y = 16.0)
+
+        }
 
     }
 

@@ -1,5 +1,8 @@
 package numeriko.sekmentation.levelset
 
+import com.github.tomasvolker.parallel.mapParallel
+import numeriko.sekmentation.Resources
+import numeriko.sekmentation.visualization.FPSDisplay
 import numeriko.sekmentation.visualization.write
 import org.openrndr.KEY_SPACEBAR
 import org.openrndr.KeyEvent
@@ -7,12 +10,16 @@ import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Debug3D
+import org.openrndr.math.Matrix44
 import org.openrndr.math.Vector3
 import org.openrndr.math.transforms.rotateX
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.elementWise
 import tomasvolker.numeriko.core.interfaces.array2d.generic.forEachIndex
 import tomasvolker.numeriko.core.primitives.indicator
+
+val KEY_PLUS = 334
+val KEY_MINUS = 333
 
 interface LevelSetAlgorithm {
 
@@ -33,12 +40,17 @@ class LevelSet3DProgram(
     val image get() = algorithm.image
     val phi get() = algorithm.phi
 
+    var stepsPerFrame = 1
+
+    val font by lazy { Resources.fontImageMap("IBMPlexMono-Bold.ttf", 16.0) }
+
     val buffer by lazy { colorBuffer(image.shape0, image.shape1) }
 
     override fun setup() {
 
         backgroundColor = ColorRGBa.BLUE.shade(0.2)
 
+        extend(FPSDisplay())
         extend(Debug3D())
 
         buffer.writeImage(image.normalizeContrast())
@@ -61,12 +73,15 @@ class LevelSet3DProgram(
     fun onKeyEvent(event: KeyEvent) {
         when(event.key) {
             KEY_SPACEBAR -> update()
+            KEY_PLUS -> stepsPerFrame++
+            KEY_MINUS -> stepsPerFrame--
         }
     }
 
     fun update() {
-        algorithm.step()
-        println("step: ${algorithm.step}")
+        repeat(stepsPerFrame) {
+            algorithm.step()
+        }
     }
 
     override fun draw() {
@@ -80,20 +95,12 @@ class LevelSet3DProgram(
 
             drawStyle.quality = DrawQuality.PERFORMANCE
             model = rotateX(-90.0)
-/*
-            isolated {
-                bufferPhi.write(phi.elementWise { (it > 0).indicator() })
-                translate(0.0, 0.0, -image.shape0.toDouble())
-                image(bufferPhi)
-            }
-*/
+
             drawPhi()
 
-            drawStyle.blendMode = BlendMode.MULTIPLY
-            fill = ColorRGBa.WHITE.opacify(0.2)
-            rectangle(buffer.bounds)
-            drawStyle.blendMode = BlendMode.ADD
-            image(buffer)
+            drawImage()
+
+            drawStep()
 
         }
 
@@ -104,7 +111,7 @@ class LevelSet3DProgram(
         stroke = ColorRGBa.RED
 
         lineStrips(
-            (0 until image.shape0).map { x ->
+            (0 until image.shape0).mapParallel(50) { x ->
                 (0 until image.shape1).map { y ->
                     Vector3(x.toDouble(), y.toDouble(), phi[x, y] * verticalFactor)
                 }
@@ -112,12 +119,37 @@ class LevelSet3DProgram(
         )
 
         lineStrips(
-            (0 until image.shape1).map { y ->
+            (0 until image.shape1).mapParallel(50) { y ->
                 (0 until image.shape0).map { x ->
                     Vector3(x.toDouble(), y.toDouble(), phi[x, y] * verticalFactor)
                 }
             }
         )
+
+    }
+
+    private fun Drawer.drawImage() {
+        drawStyle.blendMode = BlendMode.MULTIPLY
+        fill = ColorRGBa.WHITE.opacify(0.2)
+        rectangle(buffer.bounds)
+        drawStyle.blendMode = BlendMode.ADD
+        image(buffer)
+    }
+
+    private fun Drawer.drawStep() {
+
+        isolated {
+            ortho()
+            view = Matrix44.IDENTITY
+            model = Matrix44.IDENTITY
+
+            fontMap = font
+
+            fill = ColorRGBa.WHITE
+
+            text("Step: ${algorithm.step} Steps per frame: $stepsPerFrame", x = 0.0, y = 16.0)
+
+        }
 
     }
 
