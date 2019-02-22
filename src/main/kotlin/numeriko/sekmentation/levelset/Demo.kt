@@ -1,5 +1,6 @@
 package numeriko.sekmentation.levelset
 
+import numeriko.sekmentation.Resources
 import numeriko.sekmentation.io.loadImage
 import org.openrndr.application
 import org.openrndr.configuration
@@ -9,7 +10,7 @@ fun main() = runLevelSetDemo()
 
 fun runLevelSetDemo() {
 
-    val image = loadImage("data/P1_Image_originale.png")
+    val image = Resources.image("P1_Image_originale.png")
 
     application(
         configuration = configuration {

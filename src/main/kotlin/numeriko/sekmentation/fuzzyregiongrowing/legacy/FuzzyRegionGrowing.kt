@@ -1,8 +1,6 @@
 package numeriko.sekmentation.fuzzyregiongrowing.legacy
 
 import numeriko.sekmentation.io.gray
-import tomasvolker.kyplot.dsl.*
-import tomasvolker.kyscript.KyScriptConfig
 import tomasvolker.numeriko.core.dsl.D
 import tomasvolker.numeriko.core.dsl.I
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
@@ -31,11 +29,8 @@ class FuzzyRegionGrowing(val kernel: FilterKernel<DoubleArray2D>,
                 256
             )
         ).filter(input, auxMatrix).also { println("Histogram eq done") }
-//        showImage { data = auxMatrix.toListOfLists() }
         MedianFilter2D(kernel).filter(auxMatrix, destination).also { println("Median filter done") }
-//        showImage { data = destination.toListOfLists() }
         FuzzyConnectedness(pixelSeed).filter(destination, auxMatrix).also { println("Fuzzy done") }
-        showImage { data = auxMatrix.toListOfLists() }
         ThresholdFilter(
             nBins,
             ImageHistogram(256)
@@ -51,7 +46,7 @@ fun loadImage(filename: String): DoubleArray2D =
             }
         }
 
-
+/*
 fun main() {
     KyScriptConfig.defaultPythonPath = "python"
 
@@ -66,3 +61,4 @@ fun main() {
 
     showImage { data = filteredImage.toListOfLists() }
 }
+*/
