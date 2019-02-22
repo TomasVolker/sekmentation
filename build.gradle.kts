@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "numeriko"
-version = "0.1"
+version = "1.0"
 
 repositories {
     mavenCentral()
