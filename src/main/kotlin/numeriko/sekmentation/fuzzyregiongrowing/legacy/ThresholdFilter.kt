@@ -1,4 +1,4 @@
-package numeriko.sekmentation.fuzzyregiongrowing
+package numeriko.sekmentation.fuzzyregiongrowing.legacy
 
 import tomasvolker.numeriko.core.interfaces.array1d.integer.IntArray1D
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D

@@ -1,15 +1,8 @@
-package numeriko.sekmentation
+package numeriko.sekmentation.fuzzyregiongrowing.legacy
 
-import tomasvolker.numeriko.core.functions.average
-import tomasvolker.numeriko.core.interfaces.array1d.integer.IntArray1D
 import tomasvolker.numeriko.core.interfaces.array2d.double.DoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.double.applyElementWise
-import tomasvolker.numeriko.core.interfaces.factory.doubleZeros
-import tomasvolker.numeriko.core.interfaces.factory.toDoubleArray1D
-import tomasvolker.numeriko.core.operations.stack
-import tomasvolker.numeriko.core.primitives.productDouble
-import tomasvolker.numeriko.core.primitives.sqrt
 import tomasvolker.numeriko.core.primitives.squared
 import tomasvolker.numeriko.core.primitives.sumDouble
 import java.util.*
@@ -62,7 +55,8 @@ data class ProtoRegion(val mainPixel: Pixel, val pixelList: List<Pixel>) {
     }
 }
 
-class FuzzyConnectedness(val seed: PixelCoordinates): PipelineFilter2D {
+class FuzzyConnectedness(val seed: PixelCoordinates):
+    PipelineFilter2D {
     override fun filter(input: DoubleArray2D, destination: MutableDoubleArray2D) {
         val seedPixel = Pixel(input[seed.x, seed.y], seed)
         val pixelQueue: Queue<Pixel> = ArrayDeque()
@@ -94,23 +88,26 @@ class FuzzyConnectedness(val seed: PixelCoordinates): PipelineFilter2D {
     private fun gaussian(x: Double, mean: Double, std: Double) = exp(-(x - mean).squared() / (2.0 * std.squared()))
 
     private fun getProtoAdjacent(pixel: Pixel, input: DoubleArray2D) =
-            ProtoRegion(pixel,
-                List(9) { i ->
-                    val coordX: Int = if (i > 2 || i < input.shape0 - 2)
-                        (i + pixel.coordinates.x - 1) %
+        ProtoRegion(pixel,
+            List(9) { i ->
+                val coordX: Int = if (i > 2 || i < input.shape0 - 2)
+                    (i + pixel.coordinates.x - 1) %
                             (pixel.coordinates.x + 1)
-                    else
-                        0
-                    val coordY: Int = if (i > 2 || i < input.shape0 - 2)
-                        (i + pixel.coordinates.y - 1) /
+                else
+                    0
+                val coordY: Int = if (i > 2 || i < input.shape0 - 2)
+                    (i + pixel.coordinates.y - 1) /
                             (pixel.coordinates.y + 1)
-                    else
-                        0
-                    Pixel(
-                        intensity = input[coordX, coordY],
-                        coordinates = PixelCoordinates(x = coordX, y = coordY)
+                else
+                    0
+                Pixel(
+                    intensity = input[coordX, coordY],
+                    coordinates = PixelCoordinates(
+                        x = coordX,
+                        y = coordY
                     )
-                }
-            )
+                )
+            }
+        )
 
 }

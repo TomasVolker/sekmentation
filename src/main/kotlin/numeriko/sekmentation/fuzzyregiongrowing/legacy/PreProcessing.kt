@@ -1,4 +1,4 @@
-package numeriko.sekmentation.fuzzyregiongrowing
+package numeriko.sekmentation.fuzzyregiongrowing.legacy
 
 import tomasvolker.numeriko.core.index.All
 import tomasvolker.numeriko.core.interfaces.array1d.double.DoubleArray1D
@@ -9,7 +9,6 @@ import tomasvolker.numeriko.core.interfaces.array2d.double.MutableDoubleArray2D
 import tomasvolker.numeriko.core.interfaces.array2d.generic.forEachIndex
 import tomasvolker.numeriko.core.interfaces.arraynd.double.DoubleArrayND
 import tomasvolker.numeriko.core.interfaces.factory.doubleArray2D
-import tomasvolker.numeriko.core.interfaces.factory.doubleZeros
 import tomasvolker.numeriko.core.interfaces.factory.toDoubleArray1D
 
 data class FilterKernel<T: DoubleArrayND>(val window: T, val shape: IntArray1D)
@@ -62,23 +61,5 @@ class HistogramEqualizationFilter(histogram: Histogram<DoubleArray2D>): Pipeline
     inner class ImageValue(val value: Double, val x: Int, val y: Int)
 }
 
-fun DoubleArray2D.equalized(): DoubleArray2D {
 
-    val list = mutableListOf<ImageValue>()
 
-    forEachIndex { i0, i1 ->
-        list.add(ImageValue(this[i0,i1], i0, i1))
-    }
-
-    list.sortBy { it.value }
-
-    val result = doubleZeros(shape0, shape1).asMutable()
-
-    list.forEachIndexed { index, value ->
-        result[value.x, value.y] = index.toDouble() / (list.size - 1)
-    }
-
-    return result
-}
-
-class ImageValue(val value: Double, val x: Int, val y: Int)

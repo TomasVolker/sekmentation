@@ -1,6 +1,6 @@
-package numeriko.sekmentation.fuzzyregiongrowing
+package numeriko.sekmentation.fuzzyregiongrowing.legacy
 
-import numeriko.sekmentation.levelset.gray
+import numeriko.sekmentation.io.gray
 import tomasvolker.kyplot.dsl.*
 import tomasvolker.kyscript.KyScriptConfig
 import tomasvolker.numeriko.core.dsl.D
@@ -61,7 +61,8 @@ fun main() {
     val medianKernel =
         FilterKernel(D[D[1, 1, 1], D[1, 1, 1], D[1, 1, 1]], I[3, 3])
 
-    FuzzyRegionGrowing(medianKernel, pixelSeed = pixelSeed).filter(testImage, filteredImage)
+    FuzzyRegionGrowing(medianKernel, pixelSeed = pixelSeed)
+        .filter(testImage, filteredImage)
 
     showImage { data = filteredImage.toListOfLists() }
 }

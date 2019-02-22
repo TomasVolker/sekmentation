@@ -1,4 +1,4 @@
-package numeriko.sekmentation.fuzzyregiongrowing
+package numeriko.sekmentation.fuzzyregiongrowing.legacy
 
 import tomasvolker.numeriko.core.interfaces.array1d.double.DoubleArray1D
 import tomasvolker.numeriko.core.interfaces.array1d.integer.IntArray1D
@@ -15,7 +15,8 @@ interface Histogram<T> {
     fun estimateHistogram(input: T): IntArray1D
 }
 
-class ImageHistogram(override val nBins: Int): Histogram<DoubleArray2D> {
+class ImageHistogram(override val nBins: Int):
+    Histogram<DoubleArray2D> {
 
     fun floatTo8Bits(image: DoubleArray2D): DoubleArray2D =
         doubleArray2D(image.shape0, image.shape1) { i0, i1 -> (image[i0,i1] * 255.0).toInt() }

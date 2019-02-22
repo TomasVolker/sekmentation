@@ -1,16 +1,18 @@
 package numeriko.sekmentation.fuzzyregiongrowing
 
+import numeriko.sekmentation.fuzzyregiongrowing.legacy.loadImage
 import org.openrndr.application
 import org.openrndr.configuration
-import tomasvolker.numeriko.core.interfaces.array2d.double.elementWise
-import kotlin.math.hypot
 
-fun main() {
+fun main() = runFuzzyRegionGrowingDemo()
+
+fun runFuzzyRegionGrowingDemo() {
 
     val image = loadImage("data/P1_Image_originale.png").equalized()
 
     application(
         configuration = configuration {
+            title = "Fuzzy Region Growing"
             width = 1000
             height = 800
             windowResizable = true
