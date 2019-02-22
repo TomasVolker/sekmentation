@@ -1,7 +1,6 @@
 package numeriko.sekmentation.fuzzyregiongrowing
 
 import numeriko.sekmentation.Resources
-import numeriko.sekmentation.io.loadImage
 import org.openrndr.application
 import org.openrndr.configuration
 import kotlin.math.roundToInt
@@ -20,7 +19,7 @@ fun runFuzzyRegionGrowingDemo() {
             windowResizable = true
         },
         program = RegionGrowing3DProgram(
-            FuzzyConnectednessAlgorithm(
+            FuzzyConnectedness(
                 image = image,
                 seed = Point((0.6 * image.shape0).roundToInt(), (0.4 * image.shape1).roundToInt())
             ),

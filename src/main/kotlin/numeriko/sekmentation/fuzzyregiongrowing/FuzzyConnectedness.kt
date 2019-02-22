@@ -8,7 +8,7 @@ import java.util.*
 import kotlin.math.*
 
 
-class FuzzyConnectednessAlgorithm(
+class FuzzyConnectedness(
     val image: DoubleArray2D,
     seed: Point
 ) {
@@ -18,6 +18,7 @@ class FuzzyConnectednessAlgorithm(
     val queue: Queue<Point> = ArrayDeque()
 
     init {
+        // Initialization
         seed.neighborhood()
             .onEach { connectivityMap[it] = 1.0 }
             .let { queue.addAll(it) }

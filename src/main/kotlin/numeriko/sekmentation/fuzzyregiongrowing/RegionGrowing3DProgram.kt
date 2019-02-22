@@ -21,7 +21,7 @@ val KEY_PLUS = 334
 val KEY_MINUS = 333
 
 class RegionGrowing3DProgram(
-    val algorithm: FuzzyConnectednessAlgorithm,
+    val algorithm: FuzzyConnectedness,
     val verticalFactor: Double = 1.0
 ): Program() {
 

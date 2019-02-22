@@ -33,29 +33,18 @@ class SimpleLevelSet(
 
         val phiCopy = phi.copy()
 
+        // Parallelization
         parallelContext {
 
             (0 until width).inIntervalsOf(50).forEach { interval ->
-
                 launch {
-
-                    for (i0 in interval) {
-                        for (i1 in 0 until height) {
-
-                            phi[i0, i1] += deltaT * (
-                                    force[i0, i1] * (phiCopy.gradientNormAt(i0, i1) *
-                                    speed + 2 * phiCopy.laplacianAt(i0, i1))
-                                    )
-
-                        }
-                    }
-
+                    updateColumns(phiCopy, interval)
                 }
-
             }
 
         }
 
+        // Border conditions
         for (i0 in 0 until width) {
             phi[i0, 0] = -1.0
             phi[i0, height-1] = -1.0
@@ -66,6 +55,19 @@ class SimpleLevelSet(
         }
 
         step++
+    }
+
+    fun updateColumns(phiCopy: DoubleArray2D, interval: IntRange) {
+        for (i0 in interval) {
+            for (i1 in 0 until height) {
+                // Differential equation
+                phi[i0, i1] += deltaT * (
+                        force[i0, i1] * (phiCopy.gradientNormAt(i0, i1) *
+                                speed + 2 * phiCopy.laplacianAt(i0, i1))
+                        )
+
+            }
+        }
     }
 
 }
