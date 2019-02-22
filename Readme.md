@@ -1,6 +1,6 @@
 # Sekmentation
 
-# Build instructions
+## Build instructions
 
 This repository contains two algorithms for segmenting an 
 ultrasound infrarenal aorta image.
@@ -16,7 +16,7 @@ be executed with the command:
 ```
 java -jar sekmentation-1.0.jar
 ```
-# Algorithms
+## Algorithms
 
 The implementation of the Level Set algorithm can be found [here](https://github.com/TomasVolker/sekmentation/blob/master/src/main/kotlin/numeriko/sekmentation/levelset/SimpleLevelSet.kt)
 
